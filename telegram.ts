@@ -9,6 +9,13 @@ import axios from 'axios';
 
 export const bot = new Bot(config.telegramBotToken);
 
+// Middleware to log user IDs
+bot.use(async (ctx, next) => {
+    const userId = ctx.from?.id.toString();
+    console.log("User:", userId);
+    await next();
+});
+
 // Handle text and voice messages
 bot.on(['message:text', 'message:voice', 'message:audio'], async (ctx) => {
     let userMessage = ctx.message.text || ctx.message.caption;
@@ -46,7 +53,7 @@ bot.on(['message:text', 'message:voice', 'message:audio'], async (ctx) => {
             // Send typing indicator
             await ctx.api.sendChatAction(ctx.chat.id, 'typing');
 
-            // Transcribe via Groq Whisper (direct buffer)
+            // Transcribe via Gemini Flash (multimodal data URI)
             userMessage = await transcribeAudio(buffer);
             
             if (!userMessage) {
