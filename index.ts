@@ -1,55 +1,109 @@
-import { config } from './config/index.js';
-import { bot } from './bot/telegram.js';
-import express from 'express';
+import OpenAI from 'openai';
+import { config } from '../config/index.js';
+import { toolsDefinitions, executeTool } from '../tools/index.js';
+import { memory, ChatMessage } from '../memory/db.js';
 
-const app = express();
-const port = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-  res.send('OpenGravity Agent is ALIVE!');
+// Groq client
+const groq = new OpenAI({
+    apiKey: config.groqApiKey,
+    baseURL: 'https://api.groq.com/openai/v1',
 });
 
-app.listen(port, () => {
-  console.log(`Dummy web server listening on port ${port} to satisfy Render's health checks.`);
+// OpenRouter fallback client
+const openRouter = new OpenAI({
+    apiKey: config.openrouterApiKey || 'disabled',
+    baseURL: 'https://openrouter.ai/api/v1',
 });
 
-async function bootstrap() {
-    console.log('Initializing OpenGravity Agent...');
-    
-    // Ensure at least one LLM provider is configured
-    const hasGroq = config.groqApiKey && config.groqApiKey !== 'SUTITUYE POR EL TUYO';
-    const hasOpenRouter = config.openrouterApiKey && config.openrouterApiKey !== 'SUTITUYE POR EL TUYO';
+const MAX_ITERATIONS = 5;
 
-    if (!hasGroq && !hasOpenRouter) {
-        console.error('ERROR: No LLM provider configured. Please set GROQ_API_KEY or OPENROUTER_API_KEY.');
-        process.exit(1);
-    }
+export async function runAgentLoop(userMessage: string): Promise<string> {
+    // 1. Save user message
+    await memory.addMessage({ role: 'user', content: userMessage });
 
-    if (!hasGroq) {
-        console.warn('WARNING: GROQ_API_KEY is missing. Agent will default to OpenRouter.');
-    }
+    let iterations = 0;
+    while (iterations < MAX_ITERATIONS) {
+        iterations++;
 
-    try {
-        console.log('Starting Telegram Bot with Long Polling...');
-        await bot.start({
-            onStart: (botInfo) => {
-                console.log(`OpenGravity bot @${botInfo.username} is now online and listening.`);
-            }
+        // Retrieve recent memory context
+        const messages = await memory.getRecentMessages(20);
+
+        // Ensure system prompt is at the top
+        const systemPrompt: ChatMessage = {
+            role: 'system',
+            content: "Eres OpenGravity, un agente de IA personal. Tu idioma principal y ÚNICO es el ESPAÑOL. Debes responder SIEMPRE en español, sin importar en qué idioma te hablen. Sé conciso, servicial y directo. Usa herramientas cuando sea necesario."
+        };
+
+        const apiMessages = [systemPrompt, ...messages].map(m => {
+            const out: any = { role: m.role };
+            if (m.content) out.content = m.content;
+            if (m.name) out.name = m.name;
+            if (m.tool_calls) out.tool_calls = m.tool_calls;
+            if (m.tool_call_id) out.tool_call_id = m.tool_call_id;
+            return out;
         });
-    } catch (err: any) {
-        if (err.message?.includes('409') || err.description?.includes('Conflict')) {
-            console.error('\n⚠️  ERROR 409: CONFLICT. Multiple instances of the bot are running!');
-            console.error('👉 If you are running the bot locally, STOP IT NOW.');
-            console.error('👉 If it is on Render, wait 2 minutes for the old version to shut down.\n');
-        } else {
-            console.error('Failed to start OpenGravity:', err);
+
+        let response;
+        try {
+            response = await groq.chat.completions.create({
+                model: 'llama-3.3-70b-specdec', // Standard fast free/groq model
+                messages: apiMessages,
+                tools: toolsDefinitions as any,
+                tool_choice: 'auto'
+            });
+        } catch (error: any) {
+            console.warn("Groq failed, attempting OpenRouter fallback...", error.message);
+            if (!config.openrouterApiKey) {
+                return "Error: LLM API failing and OpenRouter fallback is not configured.";
+            }
+            response = await openRouter.chat.completions.create({
+                model: config.openrouterModel,
+                messages: apiMessages,
+                tools: toolsDefinitions as any,
+                tool_choice: 'auto'
+            });
         }
-        process.exit(1);
+
+        const choice = response.choices[0];
+        const message = choice.message;
+
+        // Save assistant message (which might contain content and/or tool calls)
+        await memory.addMessage({
+            role: 'assistant',
+            content: message.content || '',
+            tool_calls: message.tool_calls as any
+        });
+
+        if (choice.finish_reason === 'tool_calls' && message.tool_calls) {
+            // Execute tools
+            for (const toolCall of message.tool_calls) {
+                const funcName = toolCall.function.name;
+                const args = JSON.parse(toolCall.function.arguments || '{}');
+
+                try {
+                    const result = await executeTool(funcName, args);
+                    await memory.addMessage({
+                        role: 'tool',
+                        content: JSON.stringify(result),
+                        tool_call_id: toolCall.id,
+                        name: funcName
+                    });
+                } catch (err: any) {
+                    await memory.addMessage({
+                        role: 'tool',
+                        content: JSON.stringify({ error: err.message }),
+                        tool_call_id: toolCall.id,
+                        name: funcName
+                    });
+                }
+            }
+            // Continue the loop to report tool results to the LLM
+            continue;
+        } else {
+            // Final text response
+            return message.content || '(Empty Response)';
+        }
     }
+
+    return "Error: Agent reached maximum iterations without reaching a final response.";
 }
-
-// Handle graceful shutdown
-process.once('SIGINT', () => bot.stop());
-process.once('SIGTERM', () => bot.stop());
-
-bootstrap();
