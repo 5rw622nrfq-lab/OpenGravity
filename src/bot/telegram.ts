@@ -11,7 +11,12 @@ export const bot = new Bot(config.telegramBotToken);
 
 // Diagnostics / Start command
 bot.command('start', async (ctx) => {
-    await ctx.reply("🚀 OpenGravity Agent is ONLINE and ready!\n\nYou can chat with me or send me a voice note. If you are on Render, I should stay active 24/7.");
+    await ctx.reply("🚀 ¡El Agente OpenGravity está ONLINE y listo!\n\nPuedes hablar conmigo o enviarme una nota de voz. Responderé siempre en español.");
+});
+
+bot.command('borrar', async (ctx) => {
+    await memory.clearMemory();
+    await ctx.reply("✅ Memoria borrada. ¡Empecemos de cero!");
 });
 
 // Middleware to log user IDs
@@ -36,7 +41,7 @@ bot.on(['message:text', 'message:voice', 'message:audio'], async (ctx) => {
             const file = await ctx.api.getFile(fileId);
             
             if (!file.file_path) {
-                await ctx.reply("Sorry, I couldn't download the audio file.");
+                await ctx.reply("Lo siento, no pude descargar el archivo de audio.");
                 return;
             }
 
@@ -51,7 +56,7 @@ bot.on(['message:text', 'message:voice', 'message:audio'], async (ctx) => {
             console.log(`Downloaded audio for transcription. Size: ${buffer.length} bytes`);
             
             if (buffer.length === 0) {
-                await ctx.reply("Error: The downloaded audio file is empty.");
+                await ctx.reply("Error: El archivo de audio descargado está vacío.");
                 return;
             }
 
@@ -62,7 +67,7 @@ bot.on(['message:text', 'message:voice', 'message:audio'], async (ctx) => {
             userMessage = await transcribeAudio(buffer);
             
             if (!userMessage) {
-                 await ctx.reply("Sorry, I could not hear anything in that audio.");
+                 await ctx.reply("Lo siento, no pude escuchar nada en ese audio. ¿Podrías repetirlo?");
                  return;
             }
             
@@ -75,6 +80,6 @@ bot.on(['message:text', 'message:voice', 'message:audio'], async (ctx) => {
         await ctx.reply(response);
     } catch (error: any) {
         console.error("Agent error:", error);
-        await ctx.reply(`Sorry, I encountered an internal error: ${error.message}`);
+        await ctx.reply(`Lo siento, encontré un error interno: ${error.message}`);
     }
 });

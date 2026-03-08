@@ -105,5 +105,5 @@ export async function runAgentLoop(userMessage: string): Promise<string> {
         }
     }
 
-    return "Error: Agent reached maximum iterations without reaching a final response.";
+    return "Lo siento, me he liado un poco pensando y no he podido terminar la respuesta. Inténtalo de nuevo, por favor.";
 }

@@ -9,7 +9,7 @@ export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
     console.log(`[Transcription] Starting Gemini Flash transcription. Size: ${audioBuffer.length} bytes`);
     
     if (!config.openrouterApiKey) {
-        throw new Error("OPENROUTER_API_KEY is missing. It is required for transcription.");
+        throw new Error("Falta la API KEY de OpenRouter. Es necesaria para la transcripción.");
     }
 
     try {
@@ -51,8 +51,8 @@ export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
 
         if (!response.ok) {
             const errText = await response.text();
-            console.error(`[Transcription] OpenRouter API Error: ${response.status}`, errText);
-            throw new Error(`OpenRouter reported an error: ${response.status}`);
+            console.error(`[Transcripción] Error de API OpenRouter: ${response.status}`, errText);
+            throw new Error(`OpenRouter devolvió un error: ${response.status}`);
         }
 
         const json: any = await response.json();
