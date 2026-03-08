@@ -20,7 +20,9 @@
     "form-data": "^4.0.5",
     "grammy": "^1.32.0",
     "groq-sdk": "^0.37.0",
-    "openai": "^4.71.0"
+    "openai": "^4.71.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
     "@types/dotenv": "^6.1.1",
@@ -28,8 +30,6 @@
     "@types/form-data": "^2.2.1",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.19.15",
-    "fs-extra": "^11.3.4",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "fs-extra": "^11.3.4"
   }
 }
