@@ -17,16 +17,16 @@ const openRouter = new OpenAI({
 
 const MAX_ITERATIONS = 5;
 
-export async function runAgentLoop(userMessage: string): Promise<string> {
+export async function runAgentLoop(userId: string, userMessage: string): Promise<string> {
     // 1. Save user message
-    await memory.addMessage({ role: 'user', content: userMessage });
+    await memory.addMessage(userId, { role: 'user', content: userMessage });
 
     let iterations = 0;
     while (iterations < MAX_ITERATIONS) {
         iterations++;
 
-        // Retrieve recent memory context
-        const messages = await memory.getRecentMessages(20);
+        // Retrieve recent memory context for this specific user
+        const messages = await memory.getRecentMessages(userId, 20);
 
         // Ensure system prompt is at the top
         const systemPrompt: ChatMessage = {
@@ -54,7 +54,7 @@ export async function runAgentLoop(userMessage: string): Promise<string> {
         } catch (error: any) {
             console.warn("Groq failed, attempting OpenRouter fallback...", error.message);
             if (!config.openrouterApiKey) {
-                return "Error: LLM API failing and OpenRouter fallback is not configured.";
+                return "Lo siento, el servicio de IA no está disponible en este momento. Por favor, intenta más tarde.";
             }
             response = await openRouter.chat.completions.create({
                 model: config.openrouterModel,
@@ -68,7 +68,7 @@ export async function runAgentLoop(userMessage: string): Promise<string> {
         const message = choice.message;
 
         // Save assistant message (which might contain content and/or tool calls)
-        await memory.addMessage({
+        await memory.addMessage(userId, {
             role: 'assistant',
             content: message.content || '',
             tool_calls: message.tool_calls as any
@@ -82,14 +82,14 @@ export async function runAgentLoop(userMessage: string): Promise<string> {
 
                 try {
                     const result = await executeTool(funcName, args);
-                    await memory.addMessage({
+                    await memory.addMessage(userId, {
                         role: 'tool',
                         content: JSON.stringify(result),
                         tool_call_id: toolCall.id,
                         name: funcName
                     });
                 } catch (err: any) {
-                    await memory.addMessage({
+                    await memory.addMessage(userId, {
                         role: 'tool',
                         content: JSON.stringify({ error: err.message }),
                         tool_call_id: toolCall.id,
@@ -101,7 +101,7 @@ export async function runAgentLoop(userMessage: string): Promise<string> {
             continue;
         } else {
             // Final text response
-            return message.content || '(Empty Response)';
+            return message.content || '(Respuesta vacía)';
         }
     }
 

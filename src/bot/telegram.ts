@@ -16,7 +16,9 @@ bot.command('start', async (ctx) => {
 });
 
 bot.command('borrar', async (ctx) => {
-    await memory.clearMemory();
+    const userId = ctx.from?.id.toString();
+    if (!userId) return;
+    await memory.clearMemory(userId);
     await ctx.reply("✅ Memoria borrada. ¡Empecemos de cero!");
 });
 
@@ -29,6 +31,12 @@ bot.use(async (ctx, next) => {
 
 // Handle text and voice messages
 bot.on(['message:text', 'message:voice', 'message:audio'], async (ctx) => {
+    const userId = ctx.from?.id.toString();
+    if (!userId) {
+        console.error("Critical error: Telegram message without sender ID.");
+        return;
+    }
+
     let userMessage = ctx.message.text || ctx.message.caption;
 
     // Show typing indicator
@@ -77,7 +85,7 @@ bot.on(['message:text', 'message:voice', 'message:audio'], async (ctx) => {
 
         if (!userMessage) return; // Skip if it's empty
 
-        const response = await runAgentLoop(userMessage);
+        const response = await runAgentLoop(userId, userMessage);
         await ctx.reply(response);
     } catch (error: any) {
         console.error("Agent error:", error);

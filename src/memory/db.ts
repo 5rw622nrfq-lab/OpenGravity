@@ -37,9 +37,10 @@ try {
 const db = admin.firestore();
 
 export const memory = {
-    addMessage: async (msg: ChatMessage) => {
+    addMessage: async (userId: string, msg: ChatMessage) => {
         try {
             await db.collection('messages').add({
+                userId, // Identify whose message this is
                 role: msg.role,
                 content: msg.content ?? null,
                 name: msg.name ?? null,
@@ -48,13 +49,14 @@ export const memory = {
                 timestamp: admin.firestore.FieldValue.serverTimestamp()
             });
         } catch (e) {
-            console.error("Error saving message to Firestore:", e);
+            console.error(`Error saving message for user ${userId} to Firestore:`, e);
         }
     },
 
-    getRecentMessages: async (limit: number = 20): Promise<ChatMessage[]> => {
+    getRecentMessages: async (userId: string, limit: number = 20): Promise<ChatMessage[]> => {
         try {
             const snapshot = await db.collection('messages')
+                .where('userId', '==', userId) // Filter by user
                 .orderBy('timestamp', 'desc')
                 .limit(limit)
                 .get();
@@ -79,23 +81,24 @@ export const memory = {
                 return msg;
             });
         } catch (e) {
-             console.error("Error getting messages from Firestore:", e);
+             console.error(`Error getting messages for user ${userId} from Firestore:`, e);
              return [];
         }
     },
 
-    clearMemory: async () => {
+    clearMemory: async (userId: string) => {
          try {
-             // Deleting entire collections in Firestore from a client is not recommended for huge datasets,
-             // but for a personal agent we can get away with batch deletion.
-             const snapshot = await db.collection('messages').get();
+             const snapshot = await db.collection('messages')
+                .where('userId', '==', userId)
+                .get();
+             
              const batch = db.batch();
              snapshot.docs.forEach((doc) => {
                  batch.delete(doc.ref);
              });
              await batch.commit();
          } catch (e) {
-              console.error("Error clearing Firestore memory:", e);
+              console.error(`Error clearing memory for user ${userId}:`, e);
          }
     }
 };
