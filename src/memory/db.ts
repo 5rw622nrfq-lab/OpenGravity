@@ -14,13 +14,14 @@ export interface ChatMessage {
 // Initialize Firebase Admin globally
 try {
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-        // Deploy scenario (Render.com) where file upload is restricted
+        console.log("Firebase: Initializing using FIREBASE_SERVICE_ACCOUNT environment variable.");
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
         admin.initializeApp({
-            credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
+            credential: admin.credential.cert(serviceAccount),
         });
     } else {
-        // Local scenario
         const serviceAccountPath = config.googleAppCredentials;
+        console.log(`Firebase: Initializing using file: ${serviceAccountPath}`);
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccountPath),
         });
@@ -29,8 +30,11 @@ try {
   if (e.message.includes('already exists')) {
      // Already initialized
   } else {
-     console.error(`Failed to initialize Firebase Admin:`, e.message);
-     console.warn("Make sure FIREBASE_SERVICE_ACCOUNT is set or GOOGLE_APPLICATION_CREDENTIALS points to a valid file.");
+     console.error(`CRITICAL: Failed to initialize Firebase Admin.`);
+     console.error(`Error details: ${e.message}`);
+     if (e instanceof SyntaxError) {
+         console.error("FATAL: FIREBASE_SERVICE_ACCOUNT is not valid JSON. Make sure you copied the entire content of the .json file into the Render environment variable.");
+     }
   }
 }
 
