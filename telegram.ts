@@ -9,6 +9,11 @@ import axios from 'axios';
 
 export const bot = new Bot(config.telegramBotToken);
 
+// Diagnostics / Start command
+bot.command('start', async (ctx) => {
+    await ctx.reply("🚀 OpenGravity Agent is ONLINE and ready!\n\nYou can chat with me or send me a voice note. If you are on Render, I should stay active 24/7.");
+});
+
 // Middleware to log user IDs
 bot.use(async (ctx, next) => {
     const userId = ctx.from?.id.toString();
