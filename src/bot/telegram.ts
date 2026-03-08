@@ -2,6 +2,7 @@ import { Bot } from 'grammy';
 import { config } from '../config/index.js';
 import { runAgentLoop } from '../agent/index.js';
 import { transcribeAudio } from './transcription.js';
+import { memory } from '../memory/db.js';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
