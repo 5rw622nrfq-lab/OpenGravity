@@ -9,17 +9,15 @@ import axios from 'axios';
 
 export const bot = new Bot(config.telegramBotToken);
 
-// Middleware for auth whitelist
+// Diagnostics / Start command
+bot.command('start', async (ctx) => {
+    await ctx.reply("🚀 OpenGravity Agent is ONLINE and ready!\n\nYou can chat with me or send me a voice note. If you are on Render, I should stay active 24/7.");
+});
+
+// Middleware to log user IDs
 bot.use(async (ctx, next) => {
     const userId = ctx.from?.id.toString();
-    if (!userId) return; // ignore system messages without user
-
-    if (!config.telegramAllowedUserIds.includes(userId)) {
-        console.warn(`Unauthorized access attempt from User ID: ${userId}`);
-        // Optionally reply: await ctx.reply("Unauthorized.");
-        return;
-    }
-
+    console.log("User:", userId);
     await next();
 });
 
@@ -60,7 +58,7 @@ bot.on(['message:text', 'message:voice', 'message:audio'], async (ctx) => {
             // Send typing indicator
             await ctx.api.sendChatAction(ctx.chat.id, 'typing');
 
-            // Transcribe via Groq Whisper (direct buffer)
+            // Transcribe via Gemini Flash (multimodal data URI)
             userMessage = await transcribeAudio(buffer);
             
             if (!userMessage) {

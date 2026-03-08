@@ -16,14 +16,17 @@ app.listen(port, () => {
 async function bootstrap() {
     console.log('Initializing OpenGravity Agent...');
     
-    // Ensure critical configs
-    if (!config.telegramBotToken || config.telegramBotToken === 'SUTITUYE POR EL TUYO') {
-        console.error('ERROR: TELEGRAM_BOT_TOKEN is missing or default.');
+    // Ensure at least one LLM provider is configured
+    const hasGroq = config.groqApiKey && config.groqApiKey !== 'SUTITUYE POR EL TUYO';
+    const hasOpenRouter = config.openrouterApiKey && config.openrouterApiKey !== 'SUTITUYE POR EL TUYO';
+
+    if (!hasGroq && !hasOpenRouter) {
+        console.error('ERROR: No LLM provider configured. Please set GROQ_API_KEY or OPENROUTER_API_KEY.');
         process.exit(1);
     }
-    if (!config.groqApiKey || config.groqApiKey === 'SUTITUYE POR EL TUYO') {
-        console.error('ERROR: GROQ_API_KEY is missing or default.');
-        process.exit(1);
+
+    if (!hasGroq) {
+        console.warn('WARNING: GROQ_API_KEY is missing. Agent will default to OpenRouter.');
     }
 
     try {
@@ -33,8 +36,14 @@ async function bootstrap() {
                 console.log(`OpenGravity bot @${botInfo.username} is now online and listening.`);
             }
         });
-    } catch (err) {
-        console.error('Failed to start OpenGravity:', err);
+    } catch (err: any) {
+        if (err.message?.includes('409') || err.description?.includes('Conflict')) {
+            console.error('\n⚠️  ERROR 409: CONFLICT. Multiple instances of the bot are running!');
+            console.error('👉 If you are running the bot locally, STOP IT NOW.');
+            console.error('👉 If it is on Render, wait 2 minutes for the old version to shut down.\n');
+        } else {
+            console.error('Failed to start OpenGravity:', err);
+        }
         process.exit(1);
     }
 }

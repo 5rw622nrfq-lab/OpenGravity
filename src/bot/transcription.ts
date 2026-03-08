@@ -24,7 +24,7 @@ export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
                     content: [
                         {
                             type: 'text',
-                            text: "Extract and transcribe exactly what is said in this audio. Output only the transcribed text, nothing else. If there is no speech, return an empty string. Important: Response language should match the audio language (Spanish/English)."
+                            text: "Extract and transcribe exactly what is said in this audio. Output only the transcribed text, nothing else. If there is no speech, return an empty string. Important: Response language should be Spanish (Español)."
                         },
                         {
                             type: 'image_url', // Standard OpenRouter field for media via data URIs

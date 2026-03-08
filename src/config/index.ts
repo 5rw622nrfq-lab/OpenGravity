@@ -14,7 +14,7 @@ function getEnv(key: string, required: boolean = true): string {
 
 export const config = {
     telegramBotToken: getEnv('TELEGRAM_BOT_TOKEN'),
-    telegramAllowedUserIds: getEnv('TELEGRAM_ALLOWED_USER_IDS')
+    telegramAllowedUserIds: getEnv('TELEGRAM_ALLOWED_USER_IDS', false)
         .split(',')
         .map(id => id.trim())
         .filter(Boolean),

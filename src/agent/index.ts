@@ -31,7 +31,7 @@ export async function runAgentLoop(userMessage: string): Promise<string> {
         // Ensure system prompt is at the top
         const systemPrompt: ChatMessage = {
             role: 'system',
-            content: "You are OpenGravity, a personal AI agent running locally via Telegram. Be concise and helpful. Use tools when necessary."
+            content: "Eres OpenGravity, un agente de IA personal. Tu idioma principal y ÚNICO es el ESPAÑOL. Debes responder SIEMPRE en español, sin importar en qué idioma te hablen. Sé conciso, servicial y directo. Usa herramientas cuando sea necesario."
         };
 
         const apiMessages = [systemPrompt, ...messages].map(m => {
