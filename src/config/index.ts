@@ -18,7 +18,7 @@ export const config = {
         .split(',')
         .map(id => id.trim())
         .filter(Boolean),
-    groqApiKey: getEnv('GROQ_API_KEY'),
+    groqApiKey: getEnv('GROQ_API_KEY', false),
     openrouterApiKey: getEnv('OPENROUTER_API_KEY', false), // optional fallback
     openrouterModel: getEnv('OPENROUTER_MODEL', false) || 'openrouter/free',
     googleAppCredentials: getEnv('GOOGLE_APPLICATION_CREDENTIALS', false) || './service-account.json',

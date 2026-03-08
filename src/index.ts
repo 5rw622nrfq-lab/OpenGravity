@@ -30,6 +30,11 @@ async function bootstrap() {
     }
 
     try {
+        // Render often starts the new instance before the old one is fully dead.
+        // A small delay helps avoid the 409 Conflict error.
+        console.log('Waiting 5 seconds for old instances to settle...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
         console.log('Starting Telegram Bot with Long Polling...');
         await bot.start({
             onStart: (botInfo) => {
